@@ -20,7 +20,7 @@ const getProfile = async (req, res) => {
 // @route   PUT /api/profile
 const updateProfile = async (req, res) => {
   try {
-    const { fullName, mobile, email, businessName } = req.body; // Added email and businessName
+    const { fullName, mobile, email, businessName, address } = req.body; // Added email and businessName
     const user = await User.findById(req.user.id);
 
     if (!user) {
@@ -31,7 +31,8 @@ const updateProfile = async (req, res) => {
     user.fullName = fullName || user.fullName;
     user.mobile = mobile || user.mobile;
     user.email = email || user.email; // Allow email update
-    user.businessName = businessName || user.businessName; // Allow businessName update
+    user.businessName = businessName || user.businessName;
+    user.address = address || user.address; // Allow businessName update
 
     if (req.file) {
       user.avatar = req.file.path; // URL from Cloudinary
