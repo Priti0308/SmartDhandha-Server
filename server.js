@@ -11,7 +11,7 @@ connectDB();
 
 // Route Imports
 const authRoutes = require("./routes/authRoutes");
-const contactRoutes = require("./routes/contactRoutes");
+const contactRoutes =require("./routes/contactRoutes");
 const feedbackRoutes = require("./routes/feedbackRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
 const ledgerRoutes = require("./routes/ledgerRoutes");
@@ -20,34 +20,19 @@ const visitorRoutes = require("./routes/visitorRoutes");
 const profileRoutes = require('./routes/profileRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 
+// 1. Initialize App
 const app = express();
 
-// Middleware
-app.use(cors());
-// app.use(express.json());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// ==========================================================
+// 2. Setup All Middleware (CORS, JSON parsing) BEFORE routes
+// ==========================================================
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/contact", contactRoutes);
-app.use("/api/feedback", feedbackRoutes);
-
-// Consolidated Ledger and Inventory routes
-app.use("/api/ledger", ledgerRoutes);
-app.use("/api/inventory", inventoryRoutes);
-
-app.use("/api", reportRoutes);
-app.use("/api/visitors", visitorRoutes);
-app.use("/api/profile", profileRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-
-
+// -- START OF CORS CONFIG --
 // Define the list of allowed frontend URLs
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
-  'https://smart-business-delta.vercel.app' // Your deployed Render frontend
+  'https://smart-business-delta.vercel.app' // Your deployed Vercel frontend
 ];
 
 app.use(cors({
@@ -63,7 +48,30 @@ app.use(cors({
     return callback(null, true);
   }
 }));
+// -- END OF CORS CONFIG --
 
-// Start server
+// Other middleware
+// *** NOTICE: The simple 'app.use(cors());' is REMOVED ***
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// ==========================================================
+// 3. Setup API Routes AFTER middleware
+// ==========================================================
+app.use("/api/auth", authRoutes);
+app.use("/api/contact", contactRoutes);
+app.use("/api/feedback", feedbackRoutes);
+
+// Consolidated Ledger and Inventory routes
+app.use("/api/ledger", ledgerRoutes);
+app.use("/api/inventory", inventoryRoutes);
+
+app.use("/api", reportRoutes);
+app.use("/api/visitors", visitorRoutes);
+app.use("/api/profile", profileRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+
+
+// 4. Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
