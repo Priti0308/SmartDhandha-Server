@@ -11,6 +11,7 @@ connectDB();
 
 // Route Imports
 const authRoutes = require("./routes/authRoutes");
+const superAdminRoutes = require("./routes/superAdminRoutes");
 const contactRoutes =require("./routes/contactRoutes");
 const feedbackRoutes = require("./routes/feedbackRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
@@ -19,6 +20,7 @@ const reportRoutes = require("./routes/reportRoutes");
 const visitorRoutes = require("./routes/visitorRoutes");
 const profileRoutes = require('./routes/profileRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+
 
 // 1. Initialize App
 const app = express();
@@ -59,6 +61,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // 3. Setup API Routes AFTER middleware
 // ==========================================================
 app.use("/api/auth", authRoutes);
+app.use("/api/superadmin", superAdminRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/feedback", feedbackRoutes);
 
@@ -70,6 +73,7 @@ app.use("/api", reportRoutes);
 app.use("/api/visitors", visitorRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+
 
 
 // 4. Start Server

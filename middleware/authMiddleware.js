@@ -1,42 +1,22 @@
-// const jwt = require("jsonwebtoken");
-
-// const authMiddleware = (req, res, next) => {
-//   const token = req.header("Authorization")?.replace("Bearer ", "");
-//   if (!token) return res.status(401).json({ message: "No token, authorization denied" });
-
-//   try {
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//     req.user = decoded; // { id, email }
-//     next();
-//   } catch (err) {
-//     res.status(401).json({ message: "Token is not valid" });
-//   }
-// };
-
-// module.exports = authMiddleware;
-
-
 const jwt = require('jsonwebtoken');
-const User = require('../models/User'); 
-const authMiddleware = async (req, res, next) => {
+const User = require('../models/User'); // Adjust path if needed
+
+// 1. This is your existing function, renamed to 'protect'
+const protect = async (req, res, next) => {
     let token;
 
-    
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         try {
-           
             token = req.headers.authorization.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            
             req.user = await User.findById(decoded.id).select('-password');
 
             if (!req.user) {
                 return res.status(401).json({ message: 'Not authorized, user not found' });
             }
 
-            // If everything is valid, proceed to the protected route
-            next();
+            next(); // Proceed to the next middleware or controller
 
         } catch (error) {
             console.error('Token verification failed:', error.message);
@@ -49,4 +29,48 @@ const authMiddleware = async (req, res, next) => {
     }
 };
 
-module.exports = authMiddleware;
+// --- ADD THESE NEW FUNCTIONS ---
+
+// 2. SUPERADMIN CHECK
+// Checks if the logged-in user's role is 'superadmin'
+const superadmin = (req, res, next) => {
+    // This middleware MUST run *after* 'protect', so 'req.user' is available
+    if (req.user && req.user.role === 'superadmin') {
+        next();
+    } else {
+        res.status(403); // 403 Forbidden
+        throw new Error('Not authorized. Superadmin access only.');
+    }
+};
+
+// 3. COMPANY OWNER CHECK
+// Checks if the logged-in user's role is 'user' (Company Owner)
+const isCompanyOwner = (req, res, next) => {
+    if (req.user && req.user.role === 'user') {
+        next();
+    } else {
+        res.status(403);
+        throw new Error('Not authorized. Company Owner access only.');
+    }
+};
+
+// 4. BUSINESS MEMBER CHECK
+// Checks if the user is EITHER 'user' (Owner) OR 'admin' (Employee)
+const isBusinessMember = (req, res, next) => {
+    if (req.user && (req.user.role === 'user' || req.user.role === 'admin')) {
+        next();
+    } else {
+        res.status(403); // 403 Forbidden
+        throw new Error('Not authorized. Business member access only.');
+    }
+};
+
+
+// --- THIS IS THE MOST IMPORTANT CHANGE ---
+// Instead of exporting one function, we now export all of them as an object
+module.exports = {
+    protect,
+    superadmin,
+    isCompanyOwner,
+    isBusinessMember
+};

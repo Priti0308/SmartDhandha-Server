@@ -1,10 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const inventoryController = require('../controllers/inventoryController'); 
-const authMiddleware = require('../middleware/authMiddleware');
 
-// Apply authentication to all inventory routes
-router.use(authMiddleware);
+// --- 1. CHANGE THIS LINE ---
+// Import the specific functions you need from your middleware file
+const { protect, isBusinessMember } = require('../middleware/authMiddleware');
+
+// --- 2. CHANGE THIS LINE ---
+// Apply *both* middleware functions to all inventory routes
+// 'protect' runs first, then 'isBusinessMember'
+router.use(protect, isBusinessMember);
 
 // --- Product Routes ---
 router.get("/products", inventoryController.getProducts);

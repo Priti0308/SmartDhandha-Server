@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const dashboardController = require('../controllers/dashboardController');
-const authMiddleware = require('../middleware/authMiddleware');
+const { protect, isBusinessMember } = require("../middleware/authMiddleware");
 
-// Protect all dashboard routes
-router.use(authMiddleware);
+router.use(protect, isBusinessMember);
 
 // --- Existing Routes ---
 router.get('/stats', dashboardController.getDashboardStats);

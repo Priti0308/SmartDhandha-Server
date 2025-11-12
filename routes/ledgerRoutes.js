@@ -1,10 +1,16 @@
 const express = require("express");
 const router = express.Router();
 const ledgerController = require("../controllers/ledgerController");
-const authMiddleware = require("../middleware/authMiddleware");
+
+// --- 1. CHANGE THIS LINE ---
+// Import the specific functions you need
+const { protect, isBusinessMember } = require("../middleware/authMiddleware");
+
+// --- 2. CHANGE THIS LINE ---
+// Apply *both* middleware functions to all ledger routes
+router.use(protect, isBusinessMember);
 
 // --- Customer Routes ---
-router.use(authMiddleware);
 router.get("/customers", ledgerController.getCustomers);
 router.post("/customers", ledgerController.addCustomer);
 router.put("/customers/:id", ledgerController.updateCustomer);

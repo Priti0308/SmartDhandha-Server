@@ -39,7 +39,26 @@ const userSchema = new mongoose.Schema({
         type: String,
         // Default placeholder image for new users
         default: 'https://via.placeholder.com/150/f472b6/ffffff?text=U'
+    },
+    
+    // --- UPDATED ROLE FIELD ---
+    role: {
+        type: String,
+        // 'user' = Company Owner
+        // 'admin' = Employee (invited by 'user')
+        // 'superadmin' = You (system owner)
+        enum: ['user', 'admin', 'superadmin'], 
+        default: 'user',
+    },
+
+    // --- NEW BUSINESS ID FIELD ---
+    // This ID groups a 'user' (Owner) and their 'admin' (Employees) together.
+    // It will be null for the 'superadmin'.
+    businessId: {
+        type: mongoose.Schema.Types.ObjectId,
+        sparse: true, // Allows null values, which is needed for superadmin
     }
+
 }, { timestamps: true }); // Adds createdAt and updatedAt timestamps
 
 module.exports = mongoose.model("User", userSchema);

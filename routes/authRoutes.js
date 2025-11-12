@@ -15,7 +15,7 @@ router.post("/send-otp", async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: "Email is required." });
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = new Date(Date.now() + 2 * 60 * 1000);
+    const otpExpiry = new Date(Date.now() + 2 * 60 * 1000); // 2 minute expiry
     try {
         let user = await User.findOne({ email });
         if (!user) {
@@ -43,6 +43,7 @@ router.post("/send-otp", async (req, res) => {
 // @access  Public
 // ---
 router.post("/login", async (req, res) => {
+    // Your code was already correct to use 'mobile'
     const { mobile, password } = req.body;
     if (!mobile || !password) {
         return res.status(400).json({ message: "Please enter both mobile number and password." });
@@ -70,6 +71,7 @@ router.post("/login", async (req, res) => {
         const payload = {
             id: user._id,
             fullName: user.fullName,
+            role: user.role, // <-- *** CRITICAL FIX 1: Add role to JWT payload ***
         };
 
         const token = jwt.sign(
@@ -87,6 +89,7 @@ router.post("/login", async (req, res) => {
                 fullName: user.fullName,
                 email: user.email,
                 mobile: user.mobile,
+                role: user.role, // <-- *** CRITICAL FIX 2: Send role to frontend ***
             },
         });
 
@@ -133,28 +136,37 @@ router.post("/register", async (req, res) => {
         user.isVerified = true;
         user.otp = undefined;
         user.otpExpires = undefined;
+        // user.role is already 'user' by default from your model, so no change needed.
         
         console.log("[5/6] Saving user to database...");
-        await user.save(); // This is a potential point of failure if data is invalid
+        await user.save(); 
 
         console.log("[6/6] Creating JWT token...");
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+        // --- Create payload with role ---
+        const payload = {
+            id: user._id,
+            fullName: user.fullName,
+            role: user.role, // This will be 'user'
+        };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
 
         console.log("--- Registration Successful ---");
         res.status(201).json({
             message: "User registered successfully!",
             token,
-            user: { id: user._id, fullName: user.fullName, email: user.email },
+            user: { 
+                id: user._id, 
+                fullName: user.fullName, 
+                email: user.email,
+                role: user.role, // <-- Send role on register too
+            },
         });
 
     } catch (error) {
-        // This will now print the exact error to your console
         console.error("--- REGISTRATION CRASHED ---");
-        console.error("Error at step:", error.message);
-        console.error("Full Error Object:", error);
-        console.error("--- END OF CRASH REPORT ---");
+        console.error("Error message:", error.message);
+        console.error("Full Error:", error);
 
-        // Handle duplicate key errors more gracefully
         if (error.code === 11000) {
             const field = Object.keys(error.keyPattern)[0];
             return res.status(409).json({ message: `An account with this ${field} already exists.` });
