@@ -1,4 +1,5 @@
-const User = require('../models/User'); // Adjust path if needed
+const User = require('../models/User');
+const bcrypt = require('bcryptjs'); // Adjust path if needed
 // const Ledger = require('../models/ledgerModel'); // Import other models as needed
 
 // @desc    Update superadmin's own settings
