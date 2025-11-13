@@ -33,12 +33,16 @@ const protect = async (req, res, next) => {
 
 // 2. SUPERADMIN CHECK
 // Checks if the logged-in user's role is 'superadmin'
+// This is the fixed code
 const superadmin = (req, res, next) => {
-    // This middleware MUST run *after* 'protect', so 'req.user' is available
-    if (req.user && req.user.role === 'superadmin') {
-        next();
+    // --- THIS IS THE FIX ---
+    // We convert the role from the database to lowercase before checking it
+    const userRole = req.user ? req.user.role.toLowerCase() : '';
+
+    if (userRole === 'superadmin') {
+        next(); // The check will now pass
     } else {
-        res.status(403); // 403 Forbidden
+        res.status(403);
         throw new Error('Not authorized. Superadmin access only.');
     }
 };
