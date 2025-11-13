@@ -11,7 +11,8 @@ const {
 const {
     getSystemStats,
     getAllUsers,
-    deleteUser
+    deleteUser,
+    approveUser,
 } = require('../controllers/superAdminController'); // Adjust path if needed
 
 // --- Define Superadmin Routes ---
@@ -26,5 +27,7 @@ router.route('/users').get(protect, superadmin, getAllUsers);
 
 // DELETE /api/superadmin/users/:id
 router.route('/users/:id').delete(protect, superadmin, deleteUser);
+
+router.route('/users/:id/approve').patch(protect, superadmin, approveUser);
 
 module.exports = router;

@@ -35,6 +35,10 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    isApproved: {
+        type: Boolean,
+        default: false, // New users are NOT approved by default
+    },
     avatar: {
         type: String,
         // Default placeholder image for new users

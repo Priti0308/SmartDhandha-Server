@@ -43,44 +43,51 @@ router.post("/send-otp", async (req, res) => {
 // @access  Public
 // ---
 router.post("/login", async (req, res) => {
-    // Your code was already correct to use 'mobile'
     const { mobile, password } = req.body;
     if (!mobile || !password) {
         return res.status(400).json({ message: "Please enter both mobile number and password." });
     }
 
     try {
-        // 1. Find the user by their mobile number
         const user = await User.findOne({ mobile: mobile });
         if (!user) {
             return res.status(401).json({ message: "Invalid credentials. User not found." });
         }
         
-        // Ensure user account is verified before allowing login
+        // 1. Check if email is verified
         if (!user.isVerified) {
-            return res.status(403).json({ message: "Account not verified. Please check your email to complete registration." });
+            return res.status(403).json({ message: "Account not verified. Please check your email." });
         }
 
-        // 2. Compare the submitted password with the stored hash
+        // --- 2. THIS IS THE NEW APPROVAL CHECK ---
+        // We must check if the Superadmin has approved them
+        // We let the superadmin log in even if they aren't "approved"
+        const userRole = user.role ? user.role.toLowerCase() : 'user';
+        if (userRole !== 'superadmin' && !user.isApproved) {
+            return res.status(403).json({ message: "Account is pending approval from admin." });
+        }
+        // --- END OF NEW CHECK ---
+
+        // 3. Compare the submitted password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ message: "Invalid credentials. Incorrect password." });
         }
 
-        // 3. If credentials are correct, create and sign a JWT token
+        // 4. Create and sign JWT token
         const payload = {
             id: user._id,
             fullName: user.fullName,
-            role: user.role, // <-- *** CRITICAL FIX 1: Add role to JWT payload ***
+            role: user.role,
         };
 
         const token = jwt.sign(
             payload,
             process.env.JWT_SECRET,
-            { expiresIn: "7d" } // Token will be valid for 7 days
+            { expiresIn: "7d" }
         );
 
-        // 4. Send the token back to the client
+        // 5. Send the token back to the client
         res.status(200).json({
             message: "Logged in successfully!",
             token,
@@ -89,7 +96,7 @@ router.post("/login", async (req, res) => {
                 fullName: user.fullName,
                 email: user.email,
                 mobile: user.mobile,
-                role: user.role, // <-- *** CRITICAL FIX 2: Send role to frontend ***
+                role: user.role,
             },
         });
 
@@ -98,6 +105,7 @@ router.post("/login", async (req, res) => {
         res.status(500).json({ message: "Server error during login." });
     }
 });
+
 // ---
 // @route   POST /api/auth/register
 // @desc    Verifies OTP and creates a new user account.

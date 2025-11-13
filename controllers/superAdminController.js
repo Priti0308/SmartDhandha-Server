@@ -61,8 +61,26 @@ const deleteUser = async (req, res) => {
     }
 };
 
+const approveUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+
+        if (user) {
+            // Set user as approved and save
+            user.isApproved = true;
+            await user.save();
+            res.json({ message: 'User approved successfully.' });
+        } else {
+            res.status(404).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getSystemStats,
     getAllUsers,
     deleteUser,
+    approveUser,
 };
