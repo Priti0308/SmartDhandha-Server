@@ -1,6 +1,38 @@
 const User = require('../models/User'); // Adjust path if needed
 // const Ledger = require('../models/ledgerModel'); // Import other models as needed
 
+// @desc    Update superadmin's own settings
+// @route   PATCH /api/superadmin/settings
+// @access  Superadmin
+const updateMySettings = async (req, res) => {
+    try {
+        const { mobile, password } = req.body;
+        
+        // We get the user from the 'protect' middleware
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        // Update mobile if provided
+        if (mobile && mobile !== '') {
+            user.mobile = mobile;
+        }
+
+        // Update password if provided
+        if (password && password !== '') {
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(password, salt);
+        }
+
+        await user.save();
+        res.json({ message: 'Settings updated successfully.' });
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
 // @desc    Get system-wide stats for Superadmin
 // @route   GET /api/superadmin/stats
 // @access  Superadmin
@@ -83,4 +115,5 @@ module.exports = {
     getAllUsers,
     deleteUser,
     approveUser,
+    updateMySettings,
 };
