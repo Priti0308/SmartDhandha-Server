@@ -1,6 +1,6 @@
 const { Product, Cashflow, Invoice } = require("../models/Inventory"); // Note: Product, Cashflow, Invoice are not used here, but Customer, Transaction, Reminder are.
 const { Customer, Transaction, Reminder } = require("../models/Ledger");
-const { sendWhatsappMessage } = require("../utils/whatsappService");
+// const { sendWhatsappMessage } = require("../utils/whatsappService");
 const mongoose = require('mongoose');
 
 // --- Customer Controllers ---
@@ -181,67 +181,67 @@ exports.deleteReminder = async (req, res) => {
 };
 
 // --- Send a specific reminder via WhatsApp ---
-exports.sendReminderViaWhatsapp = async (req, res) => {
-  try {
-    // SECURE: Find reminder by ID and user ID, then populate customer
-    const reminder = await Reminder.findOne({ _id: req.params.id, userId: req.user.id }).populate('customerId');
+// exports.sendReminderViaWhatsapp = async (req, res) => {
+//   try {
+//     // SECURE: Find reminder by ID and user ID, then populate customer
+//     const reminder = await Reminder.findOne({ _id: req.params.id, userId: req.user.id }).populate('customerId');
     
-    if (!reminder) {
-      return res.status(404).json({ message: "Reminder not found or you do not have permission" });
-    }
+//     if (!reminder) {
+//       return res.status(404).json({ message: "Reminder not found or you do not have permission" });
+//     }
 
-    // Since we found the reminder, we know the user owns it. We still check if the populated customer exists.
-    const customer = reminder.customerId;
-    if (!customer || !customer.phone) {
-      return res.status(400).json({ message: "Customer phone number not available" });
-    }
+//     // Since we found the reminder, we know the user owns it. We still check if the populated customer exists.
+//     const customer = reminder.customerId;
+//     if (!customer || !customer.phone) {
+//       return res.status(400).json({ message: "Customer phone number not available" });
+//     }
     
-    // We must double-check that the customer (from the reminder) also belongs to this user.
-    // This check is technically redundant if our `addReminder` is secure, but it's good practice.
-    if (customer.userId.toString() !== req.user.id) {
-        return res.status(403).json({ message: "Permission denied. Customer does not belong to this user."});
-    }
+//     // We must double-check that the customer (from the reminder) also belongs to this user.
+//     // This check is technically redundant if our `addReminder` is secure, but it's good practice.
+//     if (customer.userId.toString() !== req.user.id) {
+//         return res.status(403).json({ message: "Permission denied. Customer does not belong to this user."});
+//     }
 
-    const messageBody = `🔔 Reminder for ${customer.name}:\n\n${reminder.message || 'Payment is due'}.\nDue Date: ${reminder.dueDate}\n\nFrom, SmartDhandha`;
-    const result = await sendWhatsappMessage(customer.phone, messageBody);
+//     const messageBody = `🔔 Reminder for ${customer.name}:\n\n${reminder.message || 'Payment is due'}.\nDue Date: ${reminder.dueDate}\n\nFrom, SmartDhandha`;
+//     const result = await sendWhatsappMessage(customer.phone, messageBody);
 
-    if (result.success) {
-      res.status(200).json({ message: "WhatsApp reminder sent successfully!" });
-    } else {
-      res.status(500).json({ message: "Failed to send WhatsApp reminder", error: result.error });
-    }
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
-  }
-};
+//     if (result.success) {
+//       res.status(200).json({ message: "WhatsApp reminder sent successfully!" });
+//     } else {
+//       res.status(500).json({ message: "Failed to send WhatsApp reminder", error: result.error });
+//     }
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// };
 
-// --- Send a custom offer/message via WhatsApp ---
-exports.sendOfferViaWhatsapp = async (req, res) => {
-    try {
-        const { message } = req.body;
-        if (!message) {
-            return res.status(400).json({ message: "Message content is required" });
-        }
+// // --- Send a custom offer/message via WhatsApp ---
+// exports.sendOfferViaWhatsapp = async (req, res) => {
+//     try {
+//         const { message } = req.body;
+//         if (!message) {
+//             return res.status(400).json({ message: "Message content is required" });
+//         }
 
-        // SECURE: Find customer by ID and user ID
-        const customer = await Customer.findOne({ _id: req.params.id, userId: req.user.id });
-        if (!customer) {
-            return res.status(404).json({ message: "Customer not found or you do not have permission" });
-        }
-        if (!customer.phone) {
-            return res.status(400).json({ message: "Customer phone number not available" });
-        }
+//         // SECURE: Find customer by ID and user ID
+//         const customer = await Customer.findOne({ _id: req.params.id, userId: req.user.id });
+//         if (!customer) {
+//             return res.status(404).json({ message: "Customer not found or you do not have permission" });
+//         }
+//         if (!customer.phone) {
+//             return res.status(400).json({ message: "Customer phone number not available" });
+//         }
         
-        const messageBody = `✨ Special Message for ${customer.name}:\n\n${message}\n\nThanks, SmartDhandha Team`;
-        const result = await sendWhatsappMessage(customer.phone, messageBody);
+//         const messageBody = `✨ Special Message for ${customer.name}:\n\n${message}\n\nThanks, SmartDhandha Team`;
+//         const result = await sendWhatsappMessage(customer.phone, messageBody);
 
-        if (result.success) {
-            res.status(200).json({ message: "WhatsApp message sent successfully!" });
-        } else {
-            res.status(500).json({ message: "Failed to send WhatsApp message", error: result.error });
-        }
-    } catch (error) {
-        res.status(500).json({ message: "Server error", error });
-    }
-};
+//         if (result.success) {
+//             res.status(200).json({ message: "WhatsApp message sent successfully!" });
+//         } else {
+//             res.status(500).json({ message: "Failed to send WhatsApp message", error: result.error });
+//         }
+//     } catch (error) {
+//         res.status(500).json({ message: "Server error", error });
+//     }
+// };
 

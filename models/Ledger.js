@@ -33,7 +33,7 @@ const transactionSchema = new mongoose.Schema({
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", required: true },
   type: { type: String, enum: ["credit", "debit"], required: true },
   amount: { type: Number, required: true, min: 0 },
-  date: { type: String, required: true }, // Consider changing to { type: Date, required: true }
+  date: { type: String, required: true }, 
   note: { type: String, default: "" },
 });
 const Transaction = mongoose.model("Transaction", transactionSchema);
@@ -41,7 +41,7 @@ const Transaction = mongoose.model("Transaction", transactionSchema);
 
 // 3. Reminder Model
 const reminderSchema = new mongoose.Schema({
-  // --- ADD THIS BLOCK ---
+ 
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

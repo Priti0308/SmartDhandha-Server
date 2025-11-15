@@ -6,8 +6,6 @@ const ledgerController = require("../controllers/ledgerController");
 // Import the specific functions you need
 const { protect, isBusinessMember } = require("../middleware/authMiddleware");
 
-// --- 2. CHANGE THIS LINE ---
-// Apply *both* middleware functions to all ledger routes
 router.use(protect, isBusinessMember);
 
 // --- Customer Routes ---
@@ -15,7 +13,7 @@ router.get("/customers", ledgerController.getCustomers);
 router.post("/customers", ledgerController.addCustomer);
 router.put("/customers/:id", ledgerController.updateCustomer);
 router.delete("/customers/:id", ledgerController.deleteCustomer);
-router.post('/customers/:id/send-whatsapp-offer', ledgerController.sendOfferViaWhatsapp);
+// router.post('/customers/:id/send-whatsapp-offer', ledgerController.sendOfferViaWhatsapp);
 
 // --- Transaction Routes ---
 router.get("/transactions", ledgerController.getTransactions);
@@ -27,6 +25,6 @@ router.get("/reminders", ledgerController.getReminders);
 router.post("/reminders", ledgerController.addReminder);
 router.put("/reminders/:id", ledgerController.updateReminder);
 router.delete("/reminders/:id", ledgerController.deleteReminder);
-router.post('/reminders/:id/send-whatsapp', ledgerController.sendReminderViaWhatsapp);
+// router.post('/reminders/:id/send-whatsapp', ledgerController.sendReminderViaWhatsapp);
 
 module.exports = router;

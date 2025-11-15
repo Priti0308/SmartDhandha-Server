@@ -3,9 +3,11 @@ const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema({
     fullName: {
         type: String,
+        required: true, // Now required on registration
     },
     businessName: {
         type: String,
+        required: true, // Now required on registration
     },
     email: {
         type: String,
@@ -16,53 +18,37 @@ const userSchema = new mongoose.Schema({
     },
     mobile: {
         type: String,
+        required: true, // Now required on registration
         unique: true,
-        sparse: true, // Allows multiple users to have a null value before registration is complete
+        trim: true,
     },
     address: {
         type: String,
     },
     password: {
         type: String,
-    },
-    otp: {
-        type: String,
-    },
-    otpExpires: {
-        type: Date,
-    },
-    isVerified: {
-        type: Boolean,
-        default: false,
+        required: true, // Now required on registration
     },
     isApproved: {
         type: Boolean,
-        default: false, // New users are NOT approved by default
+        default: false, // User still needs approval from 'superadmin'
     },
     avatar: {
         type: String,
-        // Default placeholder image for new users
         default: 'https://via.placeholder.com/150/f472b6/ffffff?text=U'
     },
-    
-    // --- UPDATED ROLE FIELD ---
     role: {
         type: String,
-        // 'user' = Company Owner
-        // 'admin' = Employee (invited by 'user')
-        // 'superadmin' = You (system owner)
+        // 'user' = Company Owner (Default registration)
+        // 'admin' = Employee (Invited by 'user')
+        // 'superadmin' = System Owner (Hardcoded creation)
         enum: ['user', 'admin', 'superadmin'], 
         default: 'user',
     },
-
-    // --- NEW BUSINESS ID FIELD ---
-    // This ID groups a 'user' (Owner) and their 'admin' (Employees) together.
-    // It will be null for the 'superadmin'.
     businessId: {
         type: mongoose.Schema.Types.ObjectId,
-        sparse: true, // Allows null values, which is needed for superadmin
+        sparse: true, 
     }
-
-}, { timestamps: true }); // Adds createdAt and updatedAt timestamps
+}, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);

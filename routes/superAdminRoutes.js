@@ -7,16 +7,13 @@ const {
     getAllUsers,
     deleteUser,
     approveUser,
-    updateMySettings, // <-- 1. Make sure this is imported
+    updateMySettings, 
 } = require('../controllers/superAdminController'); 
 
-// --- Your existing routes ---
 router.route('/stats').get(protect, superadmin, getSystemStats);
 router.route('/users').get(protect, superadmin, getAllUsers);
 router.route('/users/:id').delete(protect, superadmin, deleteUser);
 
-// --- 2. ADD THIS NEW LINE ---
-// This creates the PATCH /api/superadmin/users/:id/approve route
 router.route('/users/:id/approve').patch(protect, superadmin, approveUser);
 
 router.route('/settings').patch(protect, superadmin, updateMySettings);

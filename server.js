@@ -22,19 +22,12 @@ const profileRoutes = require('./routes/profileRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 
 
-// 1. Initialize App
 const app = express();
 
-// ==========================================================
-// 2. Setup All Middleware (CORS, JSON parsing) BEFORE routes
-// ==========================================================
-
-// -- START OF CORS CONFIG --
-// Define the list of allowed frontend URLs
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
-  'https://smart-business-delta.vercel.app' // Your deployed Vercel frontend
+  'https://smart-business-delta.vercel.app' 
 ];
 
 app.use(cors({
@@ -50,16 +43,12 @@ app.use(cors({
     return callback(null, true);
   }
 }));
-// -- END OF CORS CONFIG --
 
-// Other middleware
-// *** NOTICE: The simple 'app.use(cors());' is REMOVED ***
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// ==========================================================
-// 3. Setup API Routes AFTER middleware
-// ==========================================================
+
 app.use("/api/auth", authRoutes);
 app.use("/api/superadmin", superAdminRoutes);
 app.use("/api/contact", contactRoutes);

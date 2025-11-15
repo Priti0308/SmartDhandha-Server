@@ -5,8 +5,6 @@ const mongoose = require('mongoose');
 // Helper function for ObjectId validation
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
-
-
 // Customer Controllers
 // --- Customer Controllers (ADD THIS ENTIRE NEW SECTION) ---
 exports.getCustomers = async (req, res) => {

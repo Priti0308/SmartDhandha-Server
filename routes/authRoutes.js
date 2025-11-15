@@ -2,38 +2,87 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const sendEmail = require("../utils/sendEmail");
 
 const router = express.Router();
 
 // ---
-// @route   POST /api/auth/send-otp
-// @desc    Sends a verification OTP to a user's email.
+// @route   POST /api/auth/register
+// @desc    Creates a new user account without OTP verification.
 // @access  Public
 // ---
-router.post("/send-otp", async (req, res) => {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ message: "Email is required." });
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = new Date(Date.now() + 2 * 60 * 1000); // 2 minute expiry
+router.post("/register", async (req, res) => {
+    console.log("\n--- Direct Registration Attempt ---");
+    const { fullName, businessName, email, mobile, password } = req.body;
+    
+    // Basic Validation
+    if (!fullName || !businessName || !email || !mobile || !password) {
+        return res.status(400).json({ message: "All fields are required." });
+    }
+
     try {
-        let user = await User.findOne({ email });
-        if (!user) {
-            user = new User({ email, otp, otpExpires: otpExpiry });
-        } else {
-            
-            if (user.isVerified) {
-                return res.status(409).json({ message: "An account with this email already exists." });
-            }
-            user.otp = otp;
-            user.otpExpires = otpExpiry;
+        // Check if a user with this email or mobile already exists (Mongoose will handle the unique index error later, but this check is cleaner)
+        if (await User.findOne({ email })) {
+            return res.status(409).json({ message: "An account with this email already exists." });
         }
-        await user.save();
-        await sendEmail(email, "Your SmartDhandha Verification Code", `Your OTP is: ${otp}`);
-        res.status(200).json({ message: "OTP sent successfully." });
+        if (await User.findOne({ mobile })) {
+            return res.status(409).json({ message: "An account with this mobile number already exists." });
+        }
+
+        console.log("[1/3] Hashing password...");
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create the new user with default role 'user' and isApproved: false
+        const newUser = new User({
+            fullName,
+            businessName,
+            email,
+            mobile,
+            password: hashedPassword,
+            role: 'user', 
+            isApproved: false, // Default: needs superadmin approval
+        });
+        
+        console.log("[2/3] Saving user to database...");
+        await newUser.save(); 
+
+        // After successful save, update the user with their own ID as the businessId
+        // This is necessary for the main 'user' (owner) to manage their business
+        newUser.businessId = newUser._id;
+        await newUser.save();
+
+        console.log("[3/3] Creating JWT token...");
+        const payload = {
+            id: newUser._id,
+            fullName: newUser.fullName,
+            role: newUser.role,
+            isApproved: newUser.isApproved
+        };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+        console.log("--- Registration Successful ---");
+        res.status(201).json({
+            message: "Registration successful! Pending Admin Approval.",
+            token,
+            user: { 
+                id: newUser._id, 
+                fullName: newUser.fullName, 
+                email: newUser.email,
+                role: newUser.role,
+                isApproved: newUser.isApproved 
+            },
+        });
+
     } catch (error) {
-        console.error("OTP Send Error:", error);
-        res.status(500).json({ message: "Failed to send OTP due to a server error." });
+        console.error("--- REGISTRATION CRASHED ---");
+        console.error("Error message:", error.message);
+
+        // Handle unique constraint error
+        if (error.code === 11000) {
+            const field = Object.keys(error.keyPattern)[0];
+            return res.status(409).json({ message: `An account with this ${field} already exists.` });
+        }
+
+        res.status(500).json({ message: "An internal server error occurred during registration." });
     }
 });
 
@@ -54,31 +103,24 @@ router.post("/login", async (req, res) => {
             return res.status(401).json({ message: "Invalid credentials. User not found." });
         }
         
-        // 1. Check if email is verified
-        if (!user.isVerified) {
-            return res.status(403).json({ message: "Account not verified. Please check your email." });
-        }
-
-        // --- 2. THIS IS THE NEW APPROVAL CHECK ---
-        // We must check if the Superadmin has approved them
-        // We let the superadmin log in even if they aren't "approved"
+        // 1. Check for approval (only users need approval, not superadmin)
         const userRole = user.role ? user.role.toLowerCase() : 'user';
         if (userRole !== 'superadmin' && !user.isApproved) {
             return res.status(403).json({ message: "Account is pending approval from admin." });
         }
-        // --- END OF NEW CHECK ---
 
-        // 3. Compare the submitted password
+        // 2. Compare the submitted password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ message: "Invalid credentials. Incorrect password." });
         }
 
-        // 4. Create and sign JWT token
+        // 3. Create and sign JWT token
         const payload = {
             id: user._id,
             fullName: user.fullName,
             role: user.role,
+            businessId: user.businessId // Include businessId
         };
 
         const token = jwt.sign(
@@ -87,7 +129,7 @@ router.post("/login", async (req, res) => {
             { expiresIn: "7d" }
         );
 
-        // 5. Send the token back to the client
+        // 4. Send the token back to the client
         res.status(200).json({
             message: "Logged in successfully!",
             token,
@@ -97,6 +139,9 @@ router.post("/login", async (req, res) => {
                 email: user.email,
                 mobile: user.mobile,
                 role: user.role,
+                businessName: user.businessName,
+                isApproved: user.isApproved,
+                businessId: user.businessId
             },
         });
 
@@ -105,84 +150,5 @@ router.post("/login", async (req, res) => {
         res.status(500).json({ message: "Server error during login." });
     }
 });
-
-// ---
-// @route   POST /api/auth/register
-// @desc    Verifies OTP and creates a new user account.
-// @access  Public
-// ---
-router.post("/register", async (req, res) => {
-    console.log("\n--- New Registration Attempt ---");
-    const { fullName, businessName, email, mobile, password, otp } = req.body;
-    
-    try {
-        console.log("[1/6] Finding user by email:", email);
-        const user = await User.findOne({ email });
-        if (!user) {
-            console.error("[FAIL] User not found for this email.");
-            return res.status(400).json({ message: "Please request an OTP first." });
-        }
-
-        console.log("[2/6] Validating OTP...");
-        if (user.otp !== otp) {
-            console.error("[FAIL] Invalid OTP.");
-            return res.status(400).json({ message: "The OTP you entered is incorrect." });
-        }
-        if (user.otpExpires < new Date()) {
-            console.error("[FAIL] OTP has expired.");
-            return res.status(400).json({ message: "Your OTP has expired." });
-        }
-
-        console.log("[3/6] Hashing password...");
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        console.log("[4/6] Updating user document...");
-        user.fullName = fullName;
-        user.businessName = businessName;
-        user.mobile = mobile;
-        user.password = hashedPassword;
-        user.isVerified = true;
-        user.otp = undefined;
-        user.otpExpires = undefined;
-        // user.role is already 'user' by default from your model, so no change needed.
-        
-        console.log("[5/6] Saving user to database...");
-        await user.save(); 
-
-        console.log("[6/6] Creating JWT token...");
-        // --- Create payload with role ---
-        const payload = {
-            id: user._id,
-            fullName: user.fullName,
-            role: user.role, // This will be 'user'
-        };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
-
-        console.log("--- Registration Successful ---");
-        res.status(201).json({
-            message: "User registered successfully!",
-            token,
-            user: { 
-                id: user._id, 
-                fullName: user.fullName, 
-                email: user.email,
-                role: user.role, // <-- Send role on register too
-            },
-        });
-
-    } catch (error) {
-        console.error("--- REGISTRATION CRASHED ---");
-        console.error("Error message:", error.message);
-        console.error("Full Error:", error);
-
-        if (error.code === 11000) {
-            const field = Object.keys(error.keyPattern)[0];
-            return res.status(409).json({ message: `An account with this ${field} already exists.` });
-        }
-
-        res.status(500).json({ message: "An internal server error occurred during registration." });
-    }
-});
-
 
 module.exports = router;
