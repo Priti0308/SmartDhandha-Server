@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Admin = require("../models/Admin");
 
 const router = express.Router();
 
@@ -98,14 +99,22 @@ router.post("/login", async (req, res) => {
     }
 
     try {
-        const user = await User.findOne({ mobile: mobile });
+        let user = await User.findOne({ mobile: mobile });
+        let userRole = 'user';
+
+        if (!user) {
+            user = await Admin.findOne({ mobile: mobile });
+            if (user) {
+                userRole = 'admin';
+            }
+        }
+
         if (!user) {
             return res.status(401).json({ message: "Invalid credentials. User not found." });
         }
         
-        // 1. Check for approval (only users need approval, not superadmin)
-        const userRole = user.role ? user.role.toLowerCase() : 'user';
-        if (userRole !== 'superadmin' && !user.isApproved) {
+        // 1. Check for approval (only business owners need approval, not system admins)
+        if (userRole === 'user' && !user.isApproved) {
             return res.status(403).json({ message: "Account is pending approval from admin." });
         }
 
@@ -118,9 +127,9 @@ router.post("/login", async (req, res) => {
         // 3. Create and sign JWT token
         const payload = {
             id: user._id,
-            fullName: user.fullName,
-            role: user.role,
-            businessId: user.businessId // Include businessId
+            fullName: userRole === 'admin' ? "System Admin" : user.fullName,
+            role: userRole,
+            businessId: userRole === 'user' ? user.businessId : undefined
         };
 
         const token = jwt.sign(
@@ -135,13 +144,13 @@ router.post("/login", async (req, res) => {
             token,
             user: {
                 id: user._id,
-                fullName: user.fullName,
-                email: user.email,
+                fullName: userRole === 'admin' ? "System Admin" : user.fullName,
+                email: userRole === 'admin' ? "admin@smartdhandha.com" : user.email,
                 mobile: user.mobile,
-                role: user.role,
-                businessName: user.businessName,
-                isApproved: user.isApproved,
-                businessId: user.businessId
+                role: userRole,
+                businessName: userRole === 'admin' ? "SmartDhandha" : user.businessName,
+                isApproved: userRole === 'admin' ? true : user.isApproved,
+                businessId: userRole === 'user' ? user.businessId : undefined
             },
         });
 

@@ -11,7 +11,7 @@ connectDB();
 
 // Route Imports
 const authRoutes = require("./routes/authRoutes");
-const superAdminRoutes = require("./routes/superAdminRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 const contactRoutes =require("./routes/contactRoutes");
 const feedbackRoutes = require("./routes/feedbackRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
@@ -50,7 +50,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 
 app.use("/api/auth", authRoutes);
-app.use("/api/superadmin", superAdminRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/feedback", feedbackRoutes);
 

@@ -39,10 +39,9 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        // 'user' = Company Owner (Default registration)
-        // 'admin' = Employee (Invited by 'user')
-        // 'superadmin' = System Owner (Hardcoded creation)
-        enum: ['user', 'admin', 'superadmin'], 
+        // 'user' = Company / Business Owner (Default registration)
+        // 'admin' = Sub-user / Employee (Invited by 'user')
+        enum: ['user', 'admin'], 
         default: 'user',
     },
     businessId: {

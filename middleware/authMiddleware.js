@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User'); // Adjust path if needed
+const User = require('../models/User'); 
+const Admin = require('../models/Admin'); 
 
-// 1. This is your existing function, renamed to 'protect'
+// 1. JWT verification and user population
 const protect = async (req, res, next) => {
     let token;
 
@@ -10,13 +11,21 @@ const protect = async (req, res, next) => {
             token = req.headers.authorization.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            req.user = await User.findById(decoded.id).select('-password');
+            // Check in User collection first
+            let user = await User.findById(decoded.id).select('-password');
+            
+            // If not found in User, check in Admin collection
+            if (!user) {
+                user = await Admin.findById(decoded.id).select('-password');
+            }
+
+            req.user = user;
 
             if (!req.user) {
                 return res.status(401).json({ message: 'Not authorized, user not found' });
             }
 
-            next(); // Proceed to the next middleware or controller
+            next(); 
 
         } catch (error) {
             console.error('Token verification failed:', error.message);
@@ -29,21 +38,16 @@ const protect = async (req, res, next) => {
     }
 };
 
-// --- ADD THESE NEW FUNCTIONS ---
-
-// 2. SUPERADMIN CHECK
-// Checks if the logged-in user's role is 'superadmin'
-// This is the fixed code
-const superadmin = (req, res, next) => {
-    // --- THIS IS THE FIX ---
-    // We convert the role from the database to lowercase before checking it
+// 2. ADMIN ONLY CHECK
+// Checks if the logged-in user's role is 'admin' (System Owner)
+const adminOnly = (req, res, next) => {
     const userRole = req.user ? req.user.role.toLowerCase() : '';
 
-    if (userRole === 'superadmin') {
-        next(); // The check will now pass
+    if (userRole === 'admin') {
+        next(); 
     } else {
         res.status(403);
-        throw new Error('Not authorized. Superadmin access only.');
+        throw new Error('Not authorized. Admin access only.');
     }
 };
 
@@ -64,17 +68,15 @@ const isBusinessMember = (req, res, next) => {
     if (req.user && (req.user.role === 'user' || req.user.role === 'admin')) {
         next();
     } else {
-        res.status(403); // 403 Forbidden
+        res.status(403); 
         throw new Error('Not authorized. Business member access only.');
     }
 };
 
-
-// --- THIS IS THE MOST IMPORTANT CHANGE ---
-// Instead of exporting one function, we now export all of them as an object
 module.exports = {
     protect,
-    superadmin,
+    superadmin: adminOnly, // fallback alias
+    adminOnly,
     isCompanyOwner,
     isBusinessMember
 };
